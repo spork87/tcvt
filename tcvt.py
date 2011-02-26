@@ -236,6 +236,9 @@ class Terminal:
         self.realscreen = None
         self.screen = None
         self.fg = self.bg = 0
+        self.graphics_font = False
+        self.graphics_chars = {} # populated after initscr
+        self.lastchar = ord(' ')
 
     def switchmode(self):
         if isinstance(self.screen, TwoColumn):
@@ -253,6 +256,10 @@ class Terminal:
         fcntl.ioctl(ptyfd, termios.TIOCSWINSZ,
                     struct.pack("HHHH", ym, xm, 0, 0))
 
+    def addch(self, char):
+        self.lastchar = char
+        self.screen.addch(char)
+
     def start(self):
         self.realscreen = curses.initscr()
         self.realscreen.nodelay(1)
@@ -262,6 +269,10 @@ class Terminal:
         self.screen = TwoColumn(self.realscreen)
         curses.noecho()
         curses.raw()
+        self.graphics_chars = {
+            0x71: curses.ACS_HLINE,
+            0xc4: curses.ACS_HLINE,
+        }
 
     def stop(self):
         curses.noraw()
@@ -272,14 +283,14 @@ class Terminal:
         self.mode[0](char, *self.mode[1:])
 
     def feed_simple(self, char):
-        if char in 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ':
-            self.screen.addch(ord(char))
+        if self.graphics_font and ord(char) in self.graphics_chars:
+            self.addch(self.graphics_chars[ord(char)])
+        elif char in 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ':
+            self.addch(ord(char))
         elif char in '0123456789@:~$ .#!/_(),[]=-+*\'"|<>%&\\?;`^{}':
-            self.screen.addch(ord(char))
-        elif char in '\xb6\xb7\xc3\xd6\xdc\xe4\xfc\xf6':
-            self.screen.addch(ord(char))
-        elif char == '\xc4':
-            self.screen.addch(curses.ACS_HLINE)
+            self.addch(ord(char))
+        elif char in '\xb6\xb7\xc3\xc4\xd6\xdc\xe4\xfc\xf6':
+            self.addch(ord(char))
         elif char == '\r':
             self.screen.relmove(0, -9999)
         elif char == '\n':
@@ -332,8 +343,10 @@ class Terminal:
             self.screen.attron(curses.A_UNDERLINE)
         elif code == 7:
             self.screen.attron(curses.A_REVERSE)
-        elif 10 <= code <= 19:
-            pass # set something about fonts. we cannot change fonts...
+        elif code == 10:
+            self.graphics_font = False
+        elif code == 11:
+            self.graphics_font = True
         elif 30 <= code <= 37:
             self.fg = code - 30
             self.screen.attron(get_color(self.fg, self.bg))
@@ -389,9 +402,8 @@ class Terminal:
         elif char == 'B' and prev.isdigit():
             self.screen.relmove(int(prev), 0)
         elif char == 'b' and prev.isdigit():
-            repchar = self.screen.inch()
             for _ in range(int(prev)):
-                self.screen.addch(repchar)
+                self.screen.addch(self.lastchar)
         elif char == 'G' and prev.isdigit():
             y, _ = self.screen.getyx()
             self.screen.move(y, int(prev) - 1)
