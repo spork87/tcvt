@@ -406,19 +406,29 @@ class Terminal:
         else:
             raise ValueError("feed esc [ %r %r" % (prev, char))
 
-keymapping = {
-    curses.KEY_LEFT: "\x1b[D",
-    curses.KEY_DOWN: "\x1b[B",
-    curses.KEY_RIGHT: "\x1b[C",
-    curses.KEY_UP: "\x1b[A",
-    curses.KEY_HOME: "\x1b[H",
-    curses.KEY_IC: "\x1b[L",
-    curses.KEY_BACKSPACE: "\x08",
-    curses.KEY_PPAGE: "", # unsupported by ansi
-    curses.KEY_NPAGE: "", # unsupported by ansi
+symbolic_keymapping = {
+    curses.KEY_LEFT: "kcub1",
+    curses.KEY_DOWN: "kcud1",
+    curses.KEY_RIGHT: "kcuf1",
+    curses.KEY_UP: "kcuu1",
+    curses.KEY_HOME: "khome",
+    curses.KEY_IC: "kich1",
+    curses.KEY_BACKSPACE: "kbs",
+    curses.KEY_PPAGE: "kpp",
+    curses.KEY_NPAGE: "knp",
 }
 
+def compute_keymap(symbolic_map):
+    oldterm = os.environ["TERM"]
+    curses.setupterm("ansi")
+    keymap = {}
+    for key, value in symbolic_map.items():
+        keymap[key] = (curses.tigetstr(value) or "").replace("\\E", "\x1b")
+    curses.setupterm(oldterm)
+    return keymap
+
 def main():
+    keymapping =  compute_keymap(symbolic_keymapping)
     t = Terminal()
 
     pid, masterfd = pty.fork()
