@@ -255,6 +255,8 @@ class Terminal:
 
     def start(self):
         self.realscreen = curses.initscr()
+        self.realscreen.nodelay(1)
+        self.realscreen.keypad(1)
         curses.start_color()
         init_color_pairs()
         self.screen = TwoColumn(self.realscreen)
@@ -274,7 +276,7 @@ class Terminal:
             self.screen.addch(ord(char))
         elif char in '0123456789@:~$ .#!/_(),[]=-+*\'"|<>%&\\?;`^{}':
             self.screen.addch(ord(char))
-        elif char in '\xb6\xb7\xc3\xfc\xf6':
+        elif char in '\xb6\xb7\xc3\xd6\xdc\xe4\xfc\xf6':
             self.screen.addch(ord(char))
         elif char == '\xc4':
             self.screen.addch(curses.ACS_HLINE)
@@ -404,6 +406,18 @@ class Terminal:
         else:
             raise ValueError("feed esc [ %r %r" % (prev, char))
 
+keymapping = {
+    curses.KEY_LEFT: "\x1b[D",
+    curses.KEY_DOWN: "\x1b[B",
+    curses.KEY_RIGHT: "\x1b[C",
+    curses.KEY_UP: "\x1b[A",
+    curses.KEY_HOME: "\x1b[H",
+    curses.KEY_IC: "\x1b[L",
+    curses.KEY_BACKSPACE: "\x08",
+    curses.KEY_PPAGE: "", # unsupported by ansi
+    curses.KEY_NPAGE: "", # unsupported by ansi
+}
+
 def main():
     t = Terminal()
 
@@ -426,12 +440,19 @@ def main():
                     continue
                 raise
             if 0 in res:
-                data = os.read(0, 1)
-                if ord(data) == 0xb3:
-                    t.switchmode()
-                    t.resizepty(masterfd)
-                else:
-                    os.write(masterfd, data)
+                while True:
+                    key = t.realscreen.getch()
+                    if key == -1:
+                        break
+                    if key == 0xb3:
+                        t.switchmode()
+                        t.resizepty(masterfd)
+                    elif key <= 0xff:
+                        os.write(masterfd, chr(key))
+                    elif key in keymapping:
+                        os.write(masterfd, keymapping[key])
+                    else:
+                        raise ValueError("getch returned %d" % key)
             elif masterfd in res:
                 try:
                     data = os.read(masterfd, 1024)
