@@ -307,6 +307,11 @@ class Terminal:
             curses.beep()
         elif char == '\b':
             self.screen.relmove(0, -1)
+        elif char == '\t':
+            y, x = self.screen.getyx()
+            _, xm = self.screen.getmaxyx()
+            x = min(x + 8 - x % 8, xm - 1)
+            self.screen.move(y, x)
         else:
             raise ValueError("feed %r" % char)
 
