@@ -289,7 +289,7 @@ class Terminal:
             self.addch(ord(char))
         elif char in '0123456789@:~$ .#!/_(),[]=-+*\'"|<>%&\\?;`^{}':
             self.addch(ord(char))
-        elif char in '\xb6\xb7\xc3\xc4\xd6\xdc\xe4\xfc\xf6':
+        elif char in '\xb4\xb6\xb7\xc3\xc4\xd6\xdc\xe4\xe9\xfc\xf6':
             self.addch(ord(char))
         elif char == '\r':
             self.screen.relmove(0, -9999)
