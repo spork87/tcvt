@@ -424,6 +424,7 @@ class Terminal:
             raise ValueError("feed esc [ %r %r" % (prev, char))
 
 symbolic_keymapping = {
+    ord("\n"): "cr",
     curses.KEY_LEFT: "kcub1",
     curses.KEY_DOWN: "kcud1",
     curses.KEY_RIGHT: "kcuf1",
@@ -474,10 +475,10 @@ def main():
                     if key == 0xb3:
                         t.switchmode()
                         t.resizepty(masterfd)
-                    elif key <= 0xff:
-                        os.write(masterfd, chr(key))
                     elif key in keymapping:
                         os.write(masterfd, keymapping[key])
+                    elif key <= 0xff:
+                        os.write(masterfd, chr(key))
                     else:
                         raise ValueError("getch returned %d" % key)
             elif masterfd in res:
