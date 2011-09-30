@@ -38,6 +38,7 @@ import termios
 import struct
 import curses
 import errno
+import time
 
 def init_color_pairs():
     for bi, bc in enumerate((curses.COLOR_BLACK, curses.COLOR_RED,
@@ -458,9 +459,11 @@ def main():
     try:
         t.start()
         t.resizepty(masterfd)
+        refreshpending = None
         while True:
             try:
-                res, _, _ = select.select([0, masterfd], [], [])
+                res, _, _ = select.select([0, masterfd], [], [],
+                                          refreshpending and 0)
             except select.error, err:
                 if err.args[0] == errno.EINTR:
                     t.resized()
@@ -490,7 +493,14 @@ def main():
                     break
                 for char in data:
                     t.feed(char)
+                if refreshpending is None:
+                    refreshpending = time.time() + 0.1
+            elif refreshpending is not None:
                 t.screen.refresh()
+                refreshpending = None
+            if refreshpending is not None and refreshpending < time.time():
+                t.screen.refresh()
+                refreshpending = None
     finally:
         t.stop()
 
