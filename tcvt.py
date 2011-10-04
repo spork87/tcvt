@@ -273,6 +273,7 @@ class Terminal:
         self.graphics_chars = {
             0x71: curses.ACS_HLINE,
             0xc4: curses.ACS_HLINE,
+            0xb3: curses.ACS_VLINE,
         }
 
     def stop(self):
