@@ -128,37 +128,44 @@ class TwoColumn:
     def curwin(self):
         return self.left if self.ypos < self.height else self.right
 
+    @property
+    def curypos(self):
+        return self.ypos % self.height
+
+    @property
+    def curxpos(self):
+        return self.xpos
+
     def getmaxyx(self):
         return (self.height * 2, self.halfwidth)
 
     def move(self, ypos, xpos):
-        self.ypos = max(0, min(self.height * 2 - 1, ypos))
-        self.xpos = max(0, min(self.halfwidth - 1, xpos))
-        self.do_move()
+        height, width = self.getmaxyx()
+        self.ypos = max(0, min(height - 1, ypos))
+        self.xpos = max(0, min(width - 1, xpos))
+        self.fix_cursor()
 
-    def do_move(self):
-        self.curwin.move(self.ypos % self.height, self.xpos)
+    def fix_cursor(self):
+        self.curwin.move(self.curypos, self.curxpos)
 
     def relmove(self, yoff, xoff):
         self.move(self.ypos + yoff, self.xpos + xoff)
 
     def addch(self, char):
         if self.xpos == self.halfwidth - 1:
-            self.curwin.insch(self.ypos % self.height, self.xpos, char,
-                              self.attrs)
+            self.curwin.insch(self.curypos, self.curxpos, char, self.attrs)
             if self.ypos + 1 == 2 * self.height:
                 self.scroll()
                 self.move(self.ypos, 0)
             else:
                 self.move(self.ypos + 1, 0)
         else:
-            self.curwin.addch(self.ypos % self.height, self.xpos, char,
-                              self.attrs)
+            self.curwin.addch(self.curypos, self.curxpos, char, self.attrs)
             self.xpos += 1
 
     def refresh(self):
         self.screen.refresh()
-        if self.ypos < self.height:
+        if self.curwin is self.left:
             self.right.refresh()
             self.left.refresh()
         else:
@@ -175,7 +182,7 @@ class TwoColumn:
         for x in range(self.halfwidth - 1):
             self.left.addch(self.right.inch(0, x))
         self.left.insch(self.right.inch(0, self.halfwidth - 1))
-        self.do_move() # fix cursor
+        self.fix_cursor()
         self.right.scroll()
 
     def scroll_down_right(self):
@@ -186,18 +193,16 @@ class TwoColumn:
         for x in range(self.halfwidth - 1):
             self.right.addch(self.left.inch(self.height - 1, x))
         self.right.insch(self.left.inch(self.height - 1, self.halfwidth - 1))
-        self.do_move() # fix cursor
+        self.fix_cursor()
 
     def scroll(self):
         self.left.scroll()
         self.scroll_up_right()
 
     def clrtobot(self):
-        if self.ypos < self.height:
+        if self.curwin is self.left:
             self.right.clear()
-            self.left.clrtobot()
-        else:
-            self.right.clrtobot()
+        self.curwin.clrtobot()
 
     def attron(self, attr):
         self.attrs |= attr
@@ -206,30 +211,26 @@ class TwoColumn:
         self.curwin.clrtoeol()
 
     def delch(self):
-        self.curwin.delch(self.ypos % self.height, self.xpos)
+        self.curwin.delch(self.curypos, self.curxpos)
 
     def attrset(self, attr):
         self.attrs = attr
 
     def insertln(self):
-        if self.ypos >= self.height:
-            self.right.insertln()
-        else:
+        if self.curwin is self.left:
             self.scroll_down_right()
-            self.left.insertln()
+        self.curwin.insertln()
 
     def insch(self, char):
-        self.curwin.insch(self.ypos % self.height, self.xpos, char, self.attrs)
+        self.curwin.insch(self.curypos, self.curxpos, char, self.attrs)
 
     def deleteln(self):
-        if self.ypos >= self.height:
-            self.right.deleteln()
-        else:
-            self.left.deleteln()
+        self.curwin.deleteln()
+        if self.curwin is self.left:
             self.scroll_up_right()
 
     def inch(self):
-        return self.curwin.inch(self.ypos % self.height, self.xpos)
+        return self.curwin.inch(self.curypos, self.curxpos)
 
 class Terminal:
     def __init__(self):
