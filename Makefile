@@ -8,7 +8,7 @@ install:build
 	install -m755 tcvt.py "${DESTDIR}${BINDIR}/tcvt"
 	install -m755 optcvt.sh.transformed "${DESTDIR}${BINDIR}/optcvt"
 	install -m644 tcvt.1.gz "${DESTDIR}${MANDIR}/man1/tcvt.1.gz"
-	ln -s tcvt.1.gz "${DESTDIR}${MANDIR}/man1/optcvt.1.gz"
+	ln -sf tcvt.1.gz "${DESTDIR}${MANDIR}/man1/optcvt.1.gz"
 build:optcvt.sh.transformed tcvt.1.gz
 clean:
 	rm -f optcvt.sh.transformed tcvt.1.gz
