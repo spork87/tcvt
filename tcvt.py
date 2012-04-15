@@ -447,16 +447,33 @@ def compute_keymap(symbolic_map):
     curses.setupterm(oldterm)
     return keymap
 
+def set_cloexec(fd):
+    flags = fcntl.fcntl(fd, fcntl.F_GETFD, 0)
+    flags |= fcntl.FD_CLOEXEC
+    fcntl.fcntl(fd, fcntl.F_SETFD, flags)
+
 def main():
     keymapping =  compute_keymap(symbolic_keymapping)
     t = Terminal()
 
+    errpiper, errpipew = os.pipe()
+    set_cloexec(errpipew)
     pid, masterfd = pty.fork()
     if pid == 0: # child
+        os.close(errpiper)
         os.environ["TERM"] = "ansi"
-        os.execvp(sys.argv[1], sys.argv[1:])
+        try:
+            os.execvp(sys.argv[1], sys.argv[1:])
+        except OSError, err:
+            os.write(errpipew, "exec failed: %s" % (err,))
         sys.exit(1)
 
+    os.close(errpipew)
+    data = os.read(errpiper, 1024)
+    os.close(errpiper)
+    if data:
+        print(data)
+        sys.exit(1)
     try:
         t.start()
         t.resizepty(masterfd)
