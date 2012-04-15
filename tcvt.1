@@ -1,0 +1,25 @@
+.Dd Apr 15, 2012
+.Dt tcvt 1
+.Sh NAME
+tcvt - two column virtual terminal
+.Sh SYNOPSIS
+.nf
+\fBtcvt\fP \fIprogram options\fP
+.PP
+\fBoptcvt\fP \fIprogram options\fP
+.fi
+.Sh DESCRIPTION
+The two column virtual terminal emulates a virtual terminal inside another virtual terminal.
+The emulated virtual terminal is twice as tall and half as wide as the original terminal.
+The upper half of the virtual terminal goes to the left and the lower half goes to the right of the original terminal.
+An \fBANSI\fP terminal is emulated.
+Neither program takes any options.
+All arguments are forwarded to the called program.
+
+While \fBtcvt\fP splits does this conversion unconditionally, the \fBoptcvt\fP can be used with smaller terminals.
+It will only invoke \fBtcvt\fP, if the terminal is wide enough and otherwise simply exec the passed program.
+.Sh SEE ALSO
+.Xr screen 1
+.Xr splitvt 1
+.Sh AUTHOR
+Helmut Grohne <helmut@subdivi.de>
