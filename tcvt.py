@@ -110,23 +110,29 @@ class Simple:
     def inch(self):
         return self.screen.inch()
 
-class TwoColumn:
-    def __init__(self, curseswindow):
+class Columns:
+    def __init__(self, curseswindow, numcolumns=2):
         self.screen = curseswindow
         self.height, width = self.screen.getmaxyx()
-        self.halfwidth = (width - 1) // 2
-        self.left = self.screen.derwin(self.height, self.halfwidth, 0, 0)
-        self.left.scrollok(1)
-        self.right = self.screen.derwin(self.height, self.halfwidth, 0,
-                                        self.halfwidth + 1)
-        self.right.scrollok(1)
+        assert numcolumns > 1
+        self.numcolumns = numcolumns
+        self.columnwidth = (width - (numcolumns - 1)) // numcolumns
+        assert self.columnwidth > 0
+        self.windows = []
+        for i in range(numcolumns):
+            window = self.screen.derwin(self.height, self.columnwidth,
+                                        0, i * (self.columnwidth + 1))
+            window.scrollok(1)
+            self.windows.append(window)
         self.ypos, self.xpos = 0, 0
-        self.screen.vline(0, self.halfwidth, curses.ACS_VLINE, self.height)
+        for i in range(1, numcolumns):
+            self.screen.vline(0, i * (self.columnwidth + 1) - 1,
+                              curses.ACS_VLINE, self.height)
         self.attrs = 0
 
     @property
     def curwin(self):
-        return self.left if self.ypos < self.height else self.right
+        return self.windows[self.ypos // self.height]
 
     @property
     def curypos(self):
@@ -137,7 +143,7 @@ class TwoColumn:
         return self.xpos
 
     def getmaxyx(self):
-        return (self.height * 2, self.halfwidth)
+        return (self.height * self.numcolumns, self.columnwidth)
 
     def move(self, ypos, xpos):
         height, width = self.getmaxyx()
@@ -152,7 +158,7 @@ class TwoColumn:
         self.move(self.ypos + yoff, self.xpos + xoff)
 
     def addch(self, char):
-        if self.xpos == self.halfwidth - 1:
+        if self.xpos == self.columnwidth - 1:
             self.curwin.insch(self.curypos, self.curxpos, char, self.attrs)
             if self.ypos + 1 == 2 * self.height:
                 self.scroll()
@@ -165,44 +171,49 @@ class TwoColumn:
 
     def refresh(self):
         self.screen.refresh()
-        if self.curwin is self.left:
-            self.right.refresh()
-            self.left.refresh()
-        else:
-            self.left.refresh()
-            self.right.refresh()
+        for window in self.windows:
+            if window is not self.curwin:
+                window.refresh()
+        self.curwin.refresh()
 
     def getyx(self):
         return (self.ypos, self.xpos)
 
-    def scroll_up_right(self):
-        """Copy first line of right window to last line of left window and
-        scroll up the right window."""
-        self.left.move(self.height - 1, 0)
-        for x in range(self.halfwidth - 1):
-            self.left.addch(self.right.inch(0, x))
-        self.left.insch(self.right.inch(0, self.halfwidth - 1))
+    def scroll_up(self, index):
+        """Copy first line of the window with given index to last line of the
+        previous window and scroll up the given window."""
+        assert index > 0
+        previous = self.windows[index - 1]
+        previous.move(self.height - 1, 0)
+        for x in range(self.columnwidth - 1):
+            previous.addch(self.windows[index].inch(0, x))
+        previous.insch(self.windows[index].inch(0, self.columnwidth - 1))
         self.fix_cursor()
-        self.right.scroll()
+        self.windows[index].scroll()
 
-    def scroll_down_right(self):
-        """Scroll down the right window and copy the last line of the left
-        window to the first line of the right window."""
-        self.right.scroll(-1)
-        self.right.move(0, 0)
-        for x in range(self.halfwidth - 1):
-            self.right.addch(self.left.inch(self.height - 1, x))
-        self.right.insch(self.left.inch(self.height - 1, self.halfwidth - 1))
+    def scroll_down(self, index):
+        """Scroll down the window with given index and copy the last line of
+        the previous window to the first line of the given window."""
+        assert index > 0
+        current = self.windows[index]
+        previous = self.windows[index - 1]
+        current.scroll(-1)
+        current.move(0, 0)
+        for x in range(self.columnwidth - 1):
+            current.addch(previous.inch(self.height - 1, x))
+        current.insch(previous.inch(self.height - 1, self.columnwidth - 1))
         self.fix_cursor()
 
     def scroll(self):
-        self.left.scroll()
-        self.scroll_up_right()
+        self.windows[0].scroll()
+        for i in range(1, self.numcolumns):
+            self.scroll_up(i)
 
     def clrtobot(self):
-        if self.curwin is self.left:
-            self.right.clear()
-        self.curwin.clrtobot()
+        index = self.ypos // self.height
+        for i in range(index + 1, self.numcolumns):
+            self.windows[i].clear()
+        self.windows[index].clrtobot()
 
     def attron(self, attr):
         self.attrs |= attr
@@ -217,17 +228,19 @@ class TwoColumn:
         self.attrs = attr
 
     def insertln(self):
-        if self.curwin is self.left:
-            self.scroll_down_right()
+        index = self.ypos // self.height
+        for i in reversed(range(index + 1, self.numcolumns)):
+            self.scroll_down(i)
         self.curwin.insertln()
 
     def insch(self, char):
         self.curwin.insch(self.curypos, self.curxpos, char, self.attrs)
 
     def deleteln(self):
-        self.curwin.deleteln()
-        if self.curwin is self.left:
-            self.scroll_up_right()
+        index = self.ypos // self.height
+        self.windows[index].deleteln()
+        for i in range(index + 1, self.numcolumns):
+            self.scroll_up(i)
 
     def inch(self):
         return self.curwin.inch(self.curypos, self.curxpos)
@@ -243,10 +256,10 @@ class Terminal:
         self.lastchar = ord(' ')
 
     def switchmode(self):
-        if isinstance(self.screen, TwoColumn):
+        if isinstance(self.screen, Columns):
             self.screen = Simple(self.realscreen)
         else:
-            self.screen = TwoColumn(self.realscreen)
+            self.screen = Columns(self.realscreen)
         self.screen.refresh()
 
     def resized(self):
@@ -268,7 +281,7 @@ class Terminal:
         self.realscreen.keypad(1)
         curses.start_color()
         init_color_pairs()
-        self.screen = TwoColumn(self.realscreen)
+        self.screen = Columns(self.realscreen)
         curses.noecho()
         curses.raw()
         self.graphics_chars = {
