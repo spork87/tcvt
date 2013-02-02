@@ -477,7 +477,10 @@ def main():
         os.close(errpiper)
         os.environ["TERM"] = "ansi"
         try:
-            os.execvp(sys.argv[1], sys.argv[1:])
+            if len(sys.argv) < 2:
+                os.execvp(os.environ["SHELL"], [os.environ["SHELL"]])
+            else:
+                os.execvp(sys.argv[1], sys.argv[1:])
         except OSError, err:
             os.write(errpipew, "exec failed: %s" % (err,))
         sys.exit(1)
