@@ -518,7 +518,8 @@ def main():
                     elif key <= 0xff:
                         os.write(masterfd, chr(key))
                     else:
-                        raise ValueError("getch returned %d" % key)
+                        if "TCVT_DEVEL" in os.environ:
+                            raise ValueError("getch returned %d" % key)
             elif masterfd in res:
                 try:
                     data = os.read(masterfd, 1024)
