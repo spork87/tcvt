@@ -288,6 +288,11 @@ class Terminal:
             0x71: curses.ACS_HLINE,
             0xc4: curses.ACS_HLINE,
             0xb3: curses.ACS_VLINE,
+            0xb1: curses.ACS_CKBOARD,
+            0xbf: curses.ACS_URCORNER,
+            0xc0: curses.ACS_LLCORNER,
+            0xd9: curses.ACS_LRCORNER,
+            0xda: curses.ACS_ULCORNER,
         }
 
     def stop(self):
