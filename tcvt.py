@@ -245,14 +245,60 @@ class Columns:
     def inch(self):
         return self.curwin.inch(self.curypos, self.curxpos)
 
+def acs_map():
+    """call after curses.initscr"""
+    # can this mapping be obtained from curses?
+    return {
+        'l': curses.ACS_ULCORNER,
+        'm': curses.ACS_LLCORNER,
+        'k': curses.ACS_URCORNER,
+        'j': curses.ACS_LRCORNER,
+        't': curses.ACS_LTEE,
+        'u': curses.ACS_RTEE,
+        'v': curses.ACS_BTEE,
+        'w': curses.ACS_TTEE,
+        'q': curses.ACS_HLINE,
+        'x': curses.ACS_VLINE,
+        'n': curses.ACS_PLUS,
+        'o': curses.ACS_S1,
+        's': curses.ACS_S9,
+        '`': curses.ACS_DIAMOND,
+        'a': curses.ACS_CKBOARD,
+        'f': curses.ACS_DEGREE,
+        'g': curses.ACS_PLMINUS,
+        '~': curses.ACS_BULLET,
+        ',': curses.ACS_LARROW,
+        '+': curses.ACS_RARROW,
+        '.': curses.ACS_DARROW,
+        '-': curses.ACS_UARROW,
+        'h': curses.ACS_BOARD,
+        'i': curses.ACS_LANTERN,
+        'p': curses.ACS_S3,
+        'r': curses.ACS_S7,
+        'y': curses.ACS_LEQUAL,
+        'z': curses.ACS_GEQUAL,
+        '{': curses.ACS_PI,
+        '|': curses.ACS_NEQUAL,
+        '}': curses.ACS_STERLING,
+    }
+
+def compose_dicts(dct1, dct2):
+    result = {}
+    for key, value in dct1.items():
+        try:
+            result[key] = dct2[value]
+        except KeyError:
+            pass
+    return result
+
 class Terminal:
-    def __init__(self):
+    def __init__(self, acsc):
         self.mode = (self.feed_simple,)
         self.realscreen = None
         self.screen = None
         self.fg = self.bg = 0
         self.graphics_font = False
-        self.graphics_chars = {} # populated after initscr
+        self.graphics_chars = acsc # really initialized after
         self.lastchar = ord(' ')
 
     def switchmode(self):
@@ -284,16 +330,7 @@ class Terminal:
         self.screen = Columns(self.realscreen)
         curses.noecho()
         curses.raw()
-        self.graphics_chars = {
-            0x71: curses.ACS_HLINE,
-            0xc4: curses.ACS_HLINE,
-            0xb3: curses.ACS_VLINE,
-            0xb1: curses.ACS_CKBOARD,
-            0xbf: curses.ACS_URCORNER,
-            0xc0: curses.ACS_LLCORNER,
-            0xd9: curses.ACS_LRCORNER,
-            0xda: curses.ACS_ULCORNER,
-        }
+        self.graphics_chars = compose_dicts(self.graphics_chars, acs_map())
 
     def stop(self):
         curses.noraw()
@@ -343,8 +380,10 @@ class Terminal:
     def feed_graphics(self, char):
         if char == '\x1b':
             self.mode = (self.feed_esc,)
-        elif ord(char) in self.graphics_chars:
-            self.addch(self.graphics_chars[ord(char)])
+        elif char in self.graphics_chars:
+            self.addch(self.graphics_chars[char])
+        elif char == 'q': # some applications appear to use VT100 names?
+            self.addch(curses.ACS_HLINE)
         else:
             raise ValueError("graphics %r" % char)
 
@@ -477,8 +516,10 @@ def compute_keymap(symbolic_map):
     keymap = {}
     for key, value in symbolic_map.items():
         keymap[key] = (curses.tigetstr(value) or "").replace("\\E", "\x1b")
+    acsc = curses.tigetstr("acsc")
+    acsc = dict(zip(acsc[1::2], acsc[::2]))
     curses.setupterm(oldterm)
-    return keymap
+    return keymap, acsc
 
 def set_cloexec(fd):
     flags = fcntl.fcntl(fd, fcntl.F_GETFD, 0)
@@ -486,8 +527,8 @@ def set_cloexec(fd):
     fcntl.fcntl(fd, fcntl.F_SETFD, flags)
 
 def main():
-    keymapping =  compute_keymap(symbolic_keymapping)
-    t = Terminal()
+    keymapping, acsc = compute_keymap(symbolic_keymapping)
+    t = Terminal(acsc)
 
     errpiper, errpipew = os.pipe()
     set_cloexec(errpipew)
