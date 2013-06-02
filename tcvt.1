@@ -18,6 +18,11 @@ All arguments are forwarded to the called program.
 
 While \fBtcvt\fP splits does this conversion unconditionally, the \fBoptcvt\fP can be used with smaller terminals.
 It will only invoke \fBtcvt\fP, if the terminal is wide enough and otherwise simply exec the passed program.
+.Sh BUGS
+Not all \fBANSI\fP terminal features are emulated.
+If you experience rendering issues, you can export the environment variable \fBTCVT_DEVEL\fP.
+It causes \fBtcvt\fP to crash upon seeing an unimplemented character sequence.
+The error message includes the unrecognized sequence.
 .Sh SEE ALSO
 .Xr screen 1
 .Xr splitvt 1
