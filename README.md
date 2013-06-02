@@ -6,8 +6,8 @@ into a `$COLUMNS/2` x `$LINES*2` terminal. It ships the two commands `tcvt` and
 
 requriements
 ============
-To run tcvt you need a Python 2.X where X is 6 or 7. Other than that only
-standard unix tools such as man, make, gzip, sed are needed.
+To run tcvt you need a Python 2.6, 2.7 or 3.3. Other than that only standard
+unix tools such as man, make, gzip, sed are needed.
 
 license
 =======
