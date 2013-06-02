@@ -111,14 +111,19 @@ class Simple:
     def inch(self):
         return self.screen.inch()
 
+class BadWidth(Exception):
+    pass
+
 class Columns:
     def __init__(self, curseswindow, numcolumns=2):
         self.screen = curseswindow
         self.height, width = self.screen.getmaxyx()
-        assert numcolumns > 1
+        if numcolumns < 1:
+            raise BadWidth("need at least two columns")
         self.numcolumns = numcolumns
         self.columnwidth = (width - (numcolumns - 1)) // numcolumns
-        assert self.columnwidth > 0
+        if self.columnwidth <= 0:
+            raise BadWidth("resulting column width too small")
         self.windows = []
         for i in range(numcolumns):
             window = self.screen.derwin(self.height, self.columnwidth,
@@ -311,8 +316,12 @@ class Terminal:
         self.screen.refresh()
 
     def resized(self):
-        self.screen = Simple(self.realscreen)
+        # The refresh call causes curses to notice the new dimensions.
         self.screen.refresh()
+        try:
+            self.screen = Columns(self.realscreen, self.columns)
+        except BadWidth:
+            self.screen = Simple(self.realscreen)
 
     def resizepty(self, ptyfd):
         ym, xm = self.screen.getmaxyx()
