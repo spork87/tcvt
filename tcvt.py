@@ -588,7 +588,13 @@ def main():
                 if not data:
                     break
                 for char in data:
-                    t.feed(char)
+                    if "TCVT_DEVEL" in os.environ:
+                        t.feed(char)
+                    else:
+                        try:
+                            t.feed(char)
+                        except ValueError:
+                            t.feed_reset()
                 if refreshpending is None:
                     refreshpending = time.time() + 0.1
             elif refreshpending is not None:
