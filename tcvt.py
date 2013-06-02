@@ -300,13 +300,17 @@ class Terminal:
         curses.echo()
         curses.endwin()
 
+    def feed_reset(self):
+        if self.graphics_font:
+            self.mode = (self.feed_graphics,)
+        else:
+            self.mode = (self.feed_simple,)
+
     def feed(self, char):
         self.mode[0](char, *self.mode[1:])
 
     def feed_simple(self, char):
-        if self.graphics_font and ord(char) in self.graphics_chars:
-            self.addch(self.graphics_chars[ord(char)])
-        elif char in 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ':
+        if char in 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ':
             self.addch(ord(char))
         elif char in '0123456789@:~$ .#!/_(),[]=-+*\'"|<>%&\\?;`^{}':
             self.addch(ord(char))
@@ -336,6 +340,14 @@ class Terminal:
         else:
             raise ValueError("feed %r" % char)
 
+    def feed_graphics(self, char):
+        if char == '\x1b':
+            self.mode = (self.feed_esc,)
+        elif ord(char) in self.graphics_chars:
+            self.addch(self.graphics_chars[ord(char)])
+        else:
+            raise ValueError("graphics %r" % char)
+
     def feed_esc(self, char):
         if char == '[':
             self.mode = (self.feed_esc_opbr,)
@@ -343,7 +355,7 @@ class Terminal:
             raise ValueError("feed esc %r" % char)
 
     def feed_esc_opbr(self, char):
-        self.mode = (self.feed_simple,) # default
+        self.feed_reset()
         if char == 'H':
             self.feed_esc_opbr_next('H', "0;0")
         elif char == 'J':
@@ -371,8 +383,10 @@ class Terminal:
             self.screen.attron(curses.A_REVERSE)
         elif code == 10:
             self.graphics_font = False
+            self.feed_reset()
         elif code == 11:
             self.graphics_font = True
+            self.feed_reset()
         elif 30 <= code <= 37:
             self.fg = code - 30
             self.screen.attron(get_color(self.fg, self.bg))
@@ -389,7 +403,7 @@ class Terminal:
             raise ValueError("feed esc [ %r m" % code)
 
     def feed_esc_opbr_next(self, char, prev):
-        self.mode = (self.feed_simple,) # default
+        self.feed_reset()
         if char in '0123456789;':
             self.mode = (self.feed_esc_opbr_next, prev + char)
         elif char == 'm':
