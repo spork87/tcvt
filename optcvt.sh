@@ -8,6 +8,8 @@ COLUMNS="${SIZE#* }"
 
 if test "$COLUMNS" -ge $((2*$MINWIDTH+1)); then
 	exec $TCVT "$@"
+elif test -z "$@"; then
+	exec "$SHELL"
 else
 	exec "$@"
 fi

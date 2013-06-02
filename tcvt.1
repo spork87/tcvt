@@ -4,7 +4,7 @@
 tcvt - two column virtual terminal
 .Sh SYNOPSIS
 .nf
-\fBtcvt\fP \fIprogram options\fP
+\fBtcvt\fP \fItcvt options\fP \fIprogram options\fP
 .PP
 \fBoptcvt\fP \fIprogram options\fP
 .fi
@@ -13,11 +13,25 @@ The two column virtual terminal emulates a virtual terminal inside another virtu
 The emulated virtual terminal is twice as tall and half as wide as the original terminal.
 The upper half of the virtual terminal goes to the left and the lower half goes to the right of the original terminal.
 An \fBANSI\fP terminal is emulated.
-Neither program takes any options.
-All arguments are forwarded to the called program.
 
-While \fBtcvt\fP splits does this conversion unconditionally, the \fBoptcvt\fP can be used with smaller terminals.
+While \fBtcvt\fP does this conversion unconditionally, the \fBoptcvt\fP can be used with smaller terminals.
 It will only invoke \fBtcvt\fP, if the terminal is wide enough and otherwise simply exec the passed program.
+.Sh OPTIONS
+Both programs take a program and options to that program.
+They execute the given program.
+If no program is given a shell is executed.
+
+In addition the \fBtcvt\fP tool accepts a few switches.
+.Bl -tag -width indent
+.It Fl c , Fl Fl columns
+Specify the number of columns. This defaults to two.
+.It Fl h , Fl Fl help
+Print a quick option overview and exit.
+.It Fl Fl
+Signal end of options.
+.El
+
+Any non-option argument signals the end of options for \fBtcvt\fP.
 .Sh BUGS
 Not all \fBANSI\fP terminal features are emulated.
 If you experience rendering issues, you can export the environment variable \fBTCVT_DEVEL\fP.

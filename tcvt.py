@@ -39,6 +39,7 @@ import struct
 import curses
 import errno
 import time
+import optparse
 
 def init_color_pairs():
     for bi, bc in enumerate((curses.COLOR_BLACK, curses.COLOR_RED,
@@ -292,7 +293,7 @@ def compose_dicts(dct1, dct2):
     return result
 
 class Terminal:
-    def __init__(self, acsc):
+    def __init__(self, acsc, columns):
         self.mode = (self.feed_simple,)
         self.realscreen = None
         self.screen = None
@@ -300,12 +301,13 @@ class Terminal:
         self.graphics_font = False
         self.graphics_chars = acsc # really initialized after
         self.lastchar = ord(b' ')
+        self.columns = columns
 
     def switchmode(self):
         if isinstance(self.screen, Columns):
             self.screen = Simple(self.realscreen)
         else:
-            self.screen = Columns(self.realscreen)
+            self.screen = Columns(self.realscreen, self.columns)
         self.screen.refresh()
 
     def resized(self):
@@ -327,7 +329,7 @@ class Terminal:
         self.realscreen.keypad(1)
         curses.start_color()
         init_color_pairs()
-        self.screen = Columns(self.realscreen)
+        self.screen = Columns(self.realscreen, self.columns)
         curses.noecho()
         curses.raw()
         self.graphics_chars = compose_dicts(self.graphics_chars, acs_map())
@@ -535,8 +537,13 @@ def set_cloexec(fd):
     fcntl.fcntl(fd, fcntl.F_SETFD, flags)
 
 def main():
+    parser = optparse.OptionParser()
+    parser.disable_interspersed_args()
+    parser.add_option("-c", "--columns", dest="columns", metavar="N",
+                      type="int", default=2, help="number of columns")
+    options, args = parser.parse_args()
     keymapping, acsc = compute_keymap(symbolic_keymapping)
-    t = Terminal(acsc)
+    t = Terminal(acsc, options.columns)
 
     errpiper, errpipew = os.pipe()
     set_cloexec(errpipew)
@@ -545,10 +552,10 @@ def main():
         os.close(errpiper)
         os.environ["TERM"] = "ansi"
         try:
-            if len(sys.argv) < 2:
+            if len(args) < 1:
                 os.execvp(os.environ["SHELL"], [os.environ["SHELL"]])
             else:
-                os.execvp(sys.argv[1], sys.argv[1:])
+                os.execvp(args[0], args)
         except OSError as err:
             os.write(errpipew, "exec failed: %s" % (err,))
         sys.exit(1)
