@@ -317,7 +317,8 @@ class Terminal:
 
     def resized(self):
         # The refresh call causes curses to notice the new dimensions.
-        self.screen.refresh()
+        self.realscreen.refresh()
+        self.realscreen.clear()
         try:
             self.screen = Columns(self.realscreen, self.columns)
         except BadWidth:
