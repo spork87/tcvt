@@ -520,6 +520,15 @@ symbolic_keymapping = {
     curses.KEY_BACKSPACE: "kbs",
     curses.KEY_PPAGE: "kpp",
     curses.KEY_NPAGE: "knp",
+    curses.KEY_F1: "kf1",
+    curses.KEY_F2: "kf2",
+    curses.KEY_F3: "kf3",
+    curses.KEY_F4: "kf4",
+    curses.KEY_F5: "kf5",
+    curses.KEY_F6: "kf6",
+    curses.KEY_F7: "kf7",
+    curses.KEY_F8: "kf8",
+    curses.KEY_F9: "kf9",
 }
 
 if sys.version_info[0] == 3:
