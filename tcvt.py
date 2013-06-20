@@ -354,6 +354,92 @@ class Terminal:
         curses.echo()
         curses.endwin()
 
+    def do_bel(self):
+        curses.beep()
+
+    def do_bold(self):
+        self.screen.attron(curses.A_BOLD)
+
+    def do_cr(self):
+        self.screen.relmove(0, -9999)
+
+    def do_cub(self, n):
+        self.screen.relmove(0, -n)
+
+    def do_cub1(self):
+        self.do_cub(1)
+
+    def do_cud(self, n):
+        self.screen.relmove(n, 0)
+
+    def do_cud1(self):
+        self.do_cud(1)
+
+    def do_cuf(self, n):
+        self.screen.relmove(0, n)
+
+    def do_cuf1(self):
+        self.do_cuf(1)
+
+    def do_cuu(self, n):
+        self.screen.relmove(-n, 0)
+
+    def do_cuu1(self):
+        self.do_cuu(1)
+
+    def do_dch(self, n):
+        for _ in range(n):
+            self.screen.delch()
+
+    def do_dch1(self):
+        self.do_dch(1)
+
+    def do_dl(self, n):
+        for _ in range(n):
+            self.screen.deleteln()
+
+    def do_dl1(self):
+        self.do_dl(1)
+
+    def do_ech(self, n):
+        for _ in range(n):
+            self.screen.addch(ord(b' '))
+
+    def do_ed(self):
+        self.screen.clrtobot()
+
+    def do_el(self):
+        self.screen.clrtoeol()
+
+    def do_el1(self):
+        y, x = self.screen.getyx()
+        self.screen.move(y, 0)
+        for _ in range(x):
+            self.screen.addch(ord(b' '))
+
+    def do_home(self):
+        self.screen.move(0, 0)
+
+    def do_ich(self, n):
+        for _ in range(n):
+            self.screen.insch(ord(b' '))
+
+    def do_il(self, n):
+        for _ in range(n):
+            self.screen.insertln()
+
+    def do_il1(self):
+        self.do_il(1)
+
+    def do_ind(self):
+        y, x = self.screen.getyx()
+        _, xm = self.screen.getmaxyx()
+        x = min(x + 8 - x % 8, xm - 1)
+        self.screen.move(y, x)
+
+    def do_smul(self):
+        self.screen.attron(curses.A_UNDERLINE)
+
     def feed_reset(self):
         if self.graphics_font:
             self.mode = (self.feed_graphics,)
@@ -364,10 +450,15 @@ class Terminal:
         self.mode[0](char, *self.mode[1:])
 
     def feed_simple(self, char):
-        if char in simple_characters:
+        func = {
+                ord('\a'): self.do_bel,
+                ord('\r'): self.do_cr,
+                ord('\t'): self.do_ind,
+            }.get(char)
+        if func:
+            func()
+        elif char in simple_characters:
             self.addch(char)
-        elif char == ord(b'\r'):
-            self.screen.relmove(0, -9999)
         elif char == ord(b'\n'):
             y, _ = self.screen.getyx()
             ym, _ = self.screen.getmaxyx()
@@ -378,15 +469,8 @@ class Terminal:
                 self.screen.move(y+1, 0)
         elif char == 0x1b:
             self.mode = (self.feed_esc,)
-        elif char == ord(b'\a'):
-            curses.beep()
         elif char == ord(b'\b'):
             self.screen.relmove(0, -1)
-        elif char == ord(b'\t'):
-            y, x = self.screen.getyx()
-            _, xm = self.screen.getmaxyx()
-            x = min(x + 8 - x % 8, xm - 1)
-            self.screen.move(y, x)
         else:
             raise ValueError("feed %r" % char)
 
@@ -408,18 +492,24 @@ class Terminal:
 
     def feed_esc_opbr(self, char):
         self.feed_reset()
-        if char == ord(b'H'):
-            self.feed_esc_opbr_next(char, bytearray(b"0;0"))
-        elif char == ord(b'J'):
-            self.screen.clrtobot()
+        func = {
+                ord('A'): self.do_cuu1,
+                ord('B'): self.do_cud1,
+                ord('C'): self.do_cuf1,
+                ord('D'): self.do_cub1,
+                ord('H'): self.do_home,
+                ord('J'): self.do_ed,
+                ord('L'): self.do_il1,
+                ord('M'): self.do_dl1,
+                ord('K'): self.do_el,
+                ord('P'): self.do_dch1,
+            }.get(char)
+        if func:
+            func()
         elif char == ord(b'm'):
             self.feed_esc_opbr_next(char, bytearray(b'0'))
         elif char in bytearray(b'0123456789'):
             self.mode = (self.feed_esc_opbr_next, bytearray((char,)))
-        elif char == ord(b'K'):
-            self.screen.clrtoeol()
-        elif char in bytearray(b'ABCDLMP'):
-            self.feed_esc_opbr_next(char, bytearray(b'1'))
         else:
             raise ValueError("feed esc [ %r" % char)
 
@@ -428,9 +518,9 @@ class Terminal:
             self.fg = self.bg = 0
             self.screen.attrset(0)
         elif code == 1:
-            self.screen.attron(curses.A_BOLD)
+            self.do_bold()
         elif code == 4:
-            self.screen.attron(curses.A_UNDERLINE)
+            self.do_smul()
         elif code == 7:
             self.screen.attron(curses.A_REVERSE)
         elif code == 10:
@@ -456,7 +546,20 @@ class Terminal:
 
     def feed_esc_opbr_next(self, char, prev):
         self.feed_reset()
-        if char in bytearray(b'0123456789;'):
+        func = {
+                ord('A'): self.do_cuu,
+                ord('B'): self.do_cud,
+                ord('C'): self.do_cuf,
+                ord('D'): self.do_cub,
+                ord('L'): self.do_il,
+                ord('M'): self.do_dl,
+                ord('P'): self.do_dch,
+                ord('X'): self.do_ech,
+                ord('@'): self.do_ich,
+            }.get(char)
+        if func and prev.isdigit():
+            func(int(prev))
+        elif char in bytearray(b'0123456789;'):
             self.mode = (self.feed_esc_opbr_next, prev + bytearray((char,)))
         elif char == ord(b'm'):
             parts = prev.split(b';')
@@ -470,43 +573,17 @@ class Terminal:
         elif prev == bytearray(b'2') and char == ord(b'J'):
             self.screen.move(0, 0)
             self.screen.clrtobot()
-        elif char == ord(b'C') and prev.isdigit():
-            self.screen.relmove(0, int(prev))
-        elif char == ord(b'P') and prev.isdigit():
-            for _ in range(int(prev)):
-                self.screen.delch()
-        elif char == ord(b'@') and prev.isdigit():
-            for _ in range(int(prev)):
-                self.screen.insch(ord(b' '))
-        elif char == ord(b'A') and prev.isdigit():
-            self.screen.relmove(-int(prev), 0)
-        elif char == ord(b'M') and prev.isdigit():
-            for _ in range(int(prev)):
-                self.screen.deleteln()
-        elif char == ord(b'L') and prev.isdigit():
-            for _ in range(int(prev)):
-                self.screen.insertln()
-        elif char == ord(b'D') and prev.isdigit():
-            self.screen.relmove(0, -int(prev))
         elif char == ord(b'd') and prev.isdigit():
             _, x = self.screen.getyx()
             self.screen.move(int(prev) - 1, x)
-        elif char == ord(b'B') and prev.isdigit():
-            self.screen.relmove(int(prev), 0)
         elif char == ord(b'b') and prev.isdigit():
             for _ in range(int(prev)):
                 self.screen.addch(self.lastchar)
         elif char == ord(b'G') and prev.isdigit():
             y, _ = self.screen.getyx()
             self.screen.move(y, int(prev) - 1)
-        elif char == ord(b'X') and prev.isdigit():
-            for _ in range(int(prev)):
-                self.screen.addch(ord(b' '))
         elif char == ord(b'K') and prev == b'1':
-            y, x = self.screen.getyx()
-            self.screen.move(y, 0)
-            for _ in range(x):
-                self.screen.addch(ord(b' '))
+            self.do_el1()
         else:
             raise ValueError("feed esc [ %r %r" % (prev, char))
 
