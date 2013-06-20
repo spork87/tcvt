@@ -420,6 +420,12 @@ class Terminal:
     def do_home(self):
         self.screen.move(0, 0)
 
+    def do_ht(self):
+        y, x = self.screen.getyx()
+        _, xm = self.screen.getmaxyx()
+        x = min(x + 8 - x % 8, xm - 1)
+        self.screen.move(y, x)
+
     def do_ich(self, n):
         for _ in range(n):
             self.screen.insch(ord(b' '))
@@ -432,10 +438,13 @@ class Terminal:
         self.do_il(1)
 
     def do_ind(self):
-        y, x = self.screen.getyx()
-        _, xm = self.screen.getmaxyx()
-        x = min(x + 8 - x % 8, xm - 1)
-        self.screen.move(y, x)
+        y, _ = self.screen.getyx()
+        ym, _ = self.screen.getmaxyx()
+        if y + 1 == ym:
+            self.screen.scroll()
+            self.screen.move(y, 0)
+        else:
+            self.screen.move(y+1, 0)
 
     def do_smul(self):
         self.screen.attron(curses.A_UNDERLINE)
@@ -452,21 +461,14 @@ class Terminal:
     def feed_simple(self, char):
         func = {
                 ord('\a'): self.do_bel,
+                ord('\n'): self.do_ind,
                 ord('\r'): self.do_cr,
-                ord('\t'): self.do_ind,
+                ord('\t'): self.do_ht,
             }.get(char)
         if func:
             func()
         elif char in simple_characters:
             self.addch(char)
-        elif char == ord(b'\n'):
-            y, _ = self.screen.getyx()
-            ym, _ = self.screen.getmaxyx()
-            if y + 1 == ym:
-                self.screen.scroll()
-                self.screen.move(y, 0)
-            else:
-                self.screen.move(y+1, 0)
         elif char == 0x1b:
             self.mode = (self.feed_esc,)
         elif char == ord(b'\b'):
