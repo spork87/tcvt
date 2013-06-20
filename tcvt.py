@@ -255,37 +255,37 @@ def acs_map():
     """call after curses.initscr"""
     # can this mapping be obtained from curses?
     return {
-        b'l': curses.ACS_ULCORNER,
-        b'm': curses.ACS_LLCORNER,
-        b'k': curses.ACS_URCORNER,
-        b'j': curses.ACS_LRCORNER,
-        b't': curses.ACS_LTEE,
-        b'u': curses.ACS_RTEE,
-        b'v': curses.ACS_BTEE,
-        b'w': curses.ACS_TTEE,
-        b'q': curses.ACS_HLINE,
-        b'x': curses.ACS_VLINE,
-        b'n': curses.ACS_PLUS,
-        b'o': curses.ACS_S1,
-        b's': curses.ACS_S9,
-        b'`': curses.ACS_DIAMOND,
-        b'a': curses.ACS_CKBOARD,
-        b'f': curses.ACS_DEGREE,
-        b'g': curses.ACS_PLMINUS,
-        b'~': curses.ACS_BULLET,
-        b',': curses.ACS_LARROW,
-        b'+': curses.ACS_RARROW,
-        b'.': curses.ACS_DARROW,
-        b'-': curses.ACS_UARROW,
-        b'h': curses.ACS_BOARD,
-        b'i': curses.ACS_LANTERN,
-        b'p': curses.ACS_S3,
-        b'r': curses.ACS_S7,
-        b'y': curses.ACS_LEQUAL,
-        b'z': curses.ACS_GEQUAL,
-        b'{': curses.ACS_PI,
-        b'|': curses.ACS_NEQUAL,
-        b'}': curses.ACS_STERLING,
+        ord(b'l'): curses.ACS_ULCORNER,
+        ord(b'm'): curses.ACS_LLCORNER,
+        ord(b'k'): curses.ACS_URCORNER,
+        ord(b'j'): curses.ACS_LRCORNER,
+        ord(b't'): curses.ACS_LTEE,
+        ord(b'u'): curses.ACS_RTEE,
+        ord(b'v'): curses.ACS_BTEE,
+        ord(b'w'): curses.ACS_TTEE,
+        ord(b'q'): curses.ACS_HLINE,
+        ord(b'x'): curses.ACS_VLINE,
+        ord(b'n'): curses.ACS_PLUS,
+        ord(b'o'): curses.ACS_S1,
+        ord(b's'): curses.ACS_S9,
+        ord(b'`'): curses.ACS_DIAMOND,
+        ord(b'a'): curses.ACS_CKBOARD,
+        ord(b'f'): curses.ACS_DEGREE,
+        ord(b'g'): curses.ACS_PLMINUS,
+        ord(b'~'): curses.ACS_BULLET,
+        ord(b','): curses.ACS_LARROW,
+        ord(b'+'): curses.ACS_RARROW,
+        ord(b'.'): curses.ACS_DARROW,
+        ord(b'-'): curses.ACS_UARROW,
+        ord(b'h'): curses.ACS_BOARD,
+        ord(b'i'): curses.ACS_LANTERN,
+        ord(b'p'): curses.ACS_S3,
+        ord(b'r'): curses.ACS_S7,
+        ord(b'y'): curses.ACS_LEQUAL,
+        ord(b'z'): curses.ACS_GEQUAL,
+        ord(b'{'): curses.ACS_PI,
+        ord(b'|'): curses.ACS_NEQUAL,
+        ord(b'}'): curses.ACS_STERLING,
     }
 
 def compose_dicts(dct1, dct2):
@@ -296,6 +296,11 @@ def compose_dicts(dct1, dct2):
         except KeyError:
             pass
     return result
+
+simple_characters = bytearray(
+        b'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ' +
+        b'0123456789@:~$ .#!/_(),[]=-+*\'"|<>%&\\?;`^{}' +
+        b'\xb4\xb6\xb7\xc3\xc4\xd6\xdc\xe4\xe9\xfc\xf6')
 
 class Terminal:
     def __init__(self, acsc, columns):
@@ -359,15 +364,11 @@ class Terminal:
         self.mode[0](char, *self.mode[1:])
 
     def feed_simple(self, char):
-        if char in b'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ':
+        if char in simple_characters:
             self.addch(char)
-        elif char in b'0123456789@:~$ .#!/_(),[]=-+*\'"|<>%&\\?;`^{}':
-            self.addch(char)
-        elif char in b'\xb4\xb6\xb7\xc3\xc4\xd6\xdc\xe4\xe9\xfc\xf6':
-            self.addch(char)
-        elif char == b'\r':
+        elif char == ord(b'\r'):
             self.screen.relmove(0, -9999)
-        elif char == b'\n':
+        elif char == ord(b'\n'):
             y, _ = self.screen.getyx()
             ym, _ = self.screen.getmaxyx()
             if y + 1 == ym:
@@ -375,13 +376,13 @@ class Terminal:
                 self.screen.move(y, 0)
             else:
                 self.screen.move(y+1, 0)
-        elif char == b'\x1b':
+        elif char == 0x1b:
             self.mode = (self.feed_esc,)
-        elif char == b'\a':
+        elif char == ord(b'\a'):
             curses.beep()
-        elif char == b'\b':
+        elif char == ord(b'\b'):
             self.screen.relmove(0, -1)
-        elif char == b'\t':
+        elif char == ord(b'\t'):
             y, x = self.screen.getyx()
             _, xm = self.screen.getmaxyx()
             x = min(x + 8 - x % 8, xm - 1)
@@ -390,35 +391,35 @@ class Terminal:
             raise ValueError("feed %r" % char)
 
     def feed_graphics(self, char):
-        if char == b'\x1b':
+        if char == 0x1b:
             self.mode = (self.feed_esc,)
         elif char in self.graphics_chars:
             self.addch(self.graphics_chars[char])
-        elif char == b'q': # some applications appear to use VT100 names?
+        elif char == ord(b'q'):  # some applications appear to use VT100 names?
             self.addch(curses.ACS_HLINE)
         else:
             raise ValueError("graphics %r" % char)
 
     def feed_esc(self, char):
-        if char == b'[':
+        if char == ord(b'['):
             self.mode = (self.feed_esc_opbr,)
         else:
             raise ValueError("feed esc %r" % char)
 
     def feed_esc_opbr(self, char):
         self.feed_reset()
-        if char == b'H':
-            self.feed_esc_opbr_next(b'H', b"0;0")
-        elif char == b'J':
+        if char == ord(b'H'):
+            self.feed_esc_opbr_next(char, bytearray(b"0;0"))
+        elif char == ord(b'J'):
             self.screen.clrtobot()
-        elif char == b'm':
-            self.feed_esc_opbr_next(b'm', b'0')
-        elif char in b'0123456789':
-            self.mode = (self.feed_esc_opbr_next, char)
-        elif char == b'K':
+        elif char == ord(b'm'):
+            self.feed_esc_opbr_next(char, bytearray(b'0'))
+        elif char in bytearray(b'0123456789'):
+            self.mode = (self.feed_esc_opbr_next, bytearray((char,)))
+        elif char == ord(b'K'):
             self.screen.clrtoeol()
-        elif char in b'ABCDLMP':
-            self.feed_esc_opbr_next(char, b'1')
+        elif char in bytearray(b'ABCDLMP'):
+            self.feed_esc_opbr_next(char, bytearray(b'1'))
         else:
             raise ValueError("feed esc [ %r" % char)
 
@@ -455,53 +456,53 @@ class Terminal:
 
     def feed_esc_opbr_next(self, char, prev):
         self.feed_reset()
-        if char in b'0123456789;':
-            self.mode = (self.feed_esc_opbr_next, prev + char)
-        elif char == b'm':
+        if char in bytearray(b'0123456789;'):
+            self.mode = (self.feed_esc_opbr_next, prev + bytearray((char,)))
+        elif char == ord(b'm'):
             parts = prev.split(b';')
             for p in parts:
                 self.feed_color(int(p))
-        elif char == b'H':
+        elif char == ord(b'H'):
             parts = prev.split(b';')
             if len(parts) != 2:
                 raise ValueError("feed esc [ %r H" % parts)
             self.screen.move(*map((-1).__add__, map(int, parts)))
-        elif prev == b'2' and char == b'J':
+        elif prev == bytearray(b'2') and char == ord(b'J'):
             self.screen.move(0, 0)
             self.screen.clrtobot()
-        elif char == b'C' and prev.isdigit():
+        elif char == ord(b'C') and prev.isdigit():
             self.screen.relmove(0, int(prev))
-        elif char == b'P' and prev.isdigit():
+        elif char == ord(b'P') and prev.isdigit():
             for _ in range(int(prev)):
                 self.screen.delch()
-        elif char == b'@' and prev.isdigit():
+        elif char == ord(b'@') and prev.isdigit():
             for _ in range(int(prev)):
                 self.screen.insch(ord(b' '))
-        elif char == b'A' and prev.isdigit():
+        elif char == ord(b'A') and prev.isdigit():
             self.screen.relmove(-int(prev), 0)
-        elif char == b'M' and prev.isdigit():
+        elif char == ord(b'M') and prev.isdigit():
             for _ in range(int(prev)):
                 self.screen.deleteln()
-        elif char == b'L' and prev.isdigit():
+        elif char == ord(b'L') and prev.isdigit():
             for _ in range(int(prev)):
                 self.screen.insertln()
-        elif char == b'D' and prev.isdigit():
+        elif char == ord(b'D') and prev.isdigit():
             self.screen.relmove(0, -int(prev))
-        elif char == b'd' and prev.isdigit():
+        elif char == ord(b'd') and prev.isdigit():
             _, x = self.screen.getyx()
             self.screen.move(int(prev) - 1, x)
-        elif char == b'B' and prev.isdigit():
+        elif char == ord(b'B') and prev.isdigit():
             self.screen.relmove(int(prev), 0)
-        elif char == b'b' and prev.isdigit():
+        elif char == ord(b'b') and prev.isdigit():
             for _ in range(int(prev)):
                 self.screen.addch(self.lastchar)
-        elif char == b'G' and prev.isdigit():
+        elif char == ord(b'G') and prev.isdigit():
             y, _ = self.screen.getyx()
             self.screen.move(y, int(prev) - 1)
-        elif char == b'X' and prev.isdigit():
+        elif char == ord(b'X') and prev.isdigit():
             for _ in range(int(prev)):
                 self.screen.addch(ord(b' '))
-        elif char == b'K' and prev == b'1':
+        elif char == ord(b'K') and prev == b'1':
             y, x = self.screen.getyx()
             self.screen.move(y, 0)
             for _ in range(x):
@@ -531,13 +532,6 @@ symbolic_keymapping = {
     curses.KEY_F9: "kf9",
 }
 
-if sys.version_info[0] == 3:
-    def byte_sequence(bs):
-        return [bytes((b,)) for b in bs]
-else:
-    def byte_sequence(b):
-        return b
-
 def compute_keymap(symbolic_map):
     oldterm = os.environ["TERM"]
     curses.setupterm("ansi")
@@ -545,7 +539,7 @@ def compute_keymap(symbolic_map):
     for key, value in symbolic_map.items():
         keymap[key] = (curses.tigetstr(value) or b"").replace(b"\\E", b"\x1b")
     acsc = curses.tigetstr("acsc")
-    acsc = byte_sequence(acsc)
+    acsc = bytearray(acsc)
     acsc = dict(zip(acsc[1::2], acsc[::2]))
     curses.setupterm(oldterm)
     return keymap, acsc
@@ -621,7 +615,7 @@ def main():
                     break
                 if not data:
                     break
-                for char in byte_sequence(data):
+                for char in bytearray(data):
                     if "TCVT_DEVEL" in os.environ:
                         t.feed(char)
                     else:
