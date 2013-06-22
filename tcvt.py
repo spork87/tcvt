@@ -357,6 +357,9 @@ class Terminal:
     def do_bel(self):
         curses.beep()
 
+    def do_blink(self):
+        self.screen.attron(curses.A_BLINK)
+
     def do_bold(self):
         self.screen.attron(curses.A_BOLD)
 
@@ -446,6 +449,9 @@ class Terminal:
         else:
             self.screen.move(y+1, 0)
 
+    def do_invis(self):
+        self.screen.attron(curses.A_INVIS)
+
     def do_smul(self):
         self.screen.attron(curses.A_UNDERLINE)
 
@@ -516,13 +522,17 @@ class Terminal:
             raise ValueError("feed esc [ %r" % char)
 
     def feed_color(self, code):
-        if code == 0:
+        func = {
+                1: self.do_bold,
+                4: self.do_smul,
+                5: self.do_blink,
+                8: self.do_invis,
+            }.get(code)
+        if func:
+            func()
+        elif code == 0:
             self.fg = self.bg = 0
             self.screen.attrset(0)
-        elif code == 1:
-            self.do_bold()
-        elif code == 4:
-            self.do_smul()
         elif code == 7:
             self.screen.attron(curses.A_REVERSE)
         elif code == 10:
