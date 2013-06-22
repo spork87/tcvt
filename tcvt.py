@@ -423,6 +423,10 @@ class Terminal:
     def do_home(self):
         self.screen.move(0, 0)
 
+    def do_hpa(self, n):
+        y, _ = self.screen.getyx()
+        self.screen.move(y, n)
+
     def do_ht(self):
         y, x = self.screen.getyx()
         _, xm = self.screen.getmaxyx()
@@ -454,6 +458,10 @@ class Terminal:
 
     def do_smul(self):
         self.screen.attron(curses.A_UNDERLINE)
+
+    def do_vpa(self, n):
+        _, x = self.screen.getyx()
+        self.screen.move(n, x)
 
     def feed_reset(self):
         if self.graphics_font:
@@ -586,14 +594,12 @@ class Terminal:
             self.screen.move(0, 0)
             self.screen.clrtobot()
         elif char == ord(b'd') and prev.isdigit():
-            _, x = self.screen.getyx()
-            self.screen.move(int(prev) - 1, x)
+            self.do_vpa(int(prev) - 1)
         elif char == ord(b'b') and prev.isdigit():
             for _ in range(int(prev)):
                 self.screen.addch(self.lastchar)
         elif char == ord(b'G') and prev.isdigit():
-            y, _ = self.screen.getyx()
-            self.screen.move(y, int(prev) - 1)
+            self.do_hpa(int(prev) - 1)
         elif char == ord(b'K') and prev == b'1':
             self.do_el1()
         else:
