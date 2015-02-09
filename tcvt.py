@@ -475,6 +475,7 @@ class Terminal:
     def feed_simple(self, char):
         func = {
                 ord('\a'): self.do_bel,
+                ord('\b'): self.do_cub1,
                 ord('\n'): self.do_ind,
                 ord('\r'): self.do_cr,
                 ord('\t'): self.do_ht,
@@ -485,8 +486,6 @@ class Terminal:
             self.addch(char)
         elif char == 0x1b:
             self.mode = (self.feed_esc,)
-        elif char == ord(b'\b'):
-            self.screen.relmove(0, -1)
         else:
             raise ValueError("feed %r" % char)
 
