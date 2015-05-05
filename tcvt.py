@@ -115,7 +115,7 @@ class BadWidth(Exception):
     pass
 
 class Columns:
-    def __init__(self, curseswindow, numcolumns=2):
+    def __init__(self, curseswindow, numcolumns=2, reverse=False):
         self.screen = curseswindow
         self.height, width = self.screen.getmaxyx()
         if numcolumns < 1:
@@ -130,6 +130,8 @@ class Columns:
                                         0, i * (self.columnwidth + 1))
             window.scrollok(1)
             self.windows.append(window)
+        if reverse:
+            self.windows.reverse()
         self.ypos, self.xpos = 0, 0
         for i in range(1, numcolumns):
             self.screen.vline(0, i * (self.columnwidth + 1) - 1,
@@ -303,7 +305,7 @@ simple_characters = bytearray(
         b'\xb4\xb6\xb7\xc3\xc4\xd6\xdc\xe4\xe9\xfc\xf6')
 
 class Terminal:
-    def __init__(self, acsc, columns):
+    def __init__(self, acsc, columns, reverse=False):
         self.mode = (self.feed_simple,)
         self.realscreen = None
         self.screen = None
@@ -312,6 +314,7 @@ class Terminal:
         self.graphics_chars = acsc # really initialized after
         self.lastchar = ord(b' ')
         self.columns = columns
+        self.reverse = reverse
 
     def switchmode(self):
         if isinstance(self.screen, Columns):
@@ -325,7 +328,8 @@ class Terminal:
         self.realscreen.refresh()
         self.realscreen.clear()
         try:
-            self.screen = Columns(self.realscreen, self.columns)
+            self.screen = Columns(self.realscreen, self.columns,
+                                  reverse=self.reverse)
         except BadWidth:
             self.screen = Simple(self.realscreen)
 
@@ -344,7 +348,8 @@ class Terminal:
         self.realscreen.keypad(1)
         curses.start_color()
         init_color_pairs()
-        self.screen = Columns(self.realscreen, self.columns)
+        self.screen = Columns(self.realscreen, self.columns,
+                              reverse=self.reverse)
         curses.noecho()
         curses.raw()
         self.graphics_chars = compose_dicts(self.graphics_chars, acs_map())
@@ -648,9 +653,12 @@ def main():
     parser.disable_interspersed_args()
     parser.add_option("-c", "--columns", dest="columns", metavar="N",
                       type="int", default=2, help="number of columns")
+    parser.add_option("-r", "--reverse", action="store_true",
+                      dest="reverse", default=False,
+                      help="order last column to the left")
     options, args = parser.parse_args()
     keymapping, acsc = compute_keymap(symbolic_keymapping)
-    t = Terminal(acsc, options.columns)
+    t = Terminal(acsc, options.columns, reverse=options.reverse)
 
     errpiper, errpipew = os.pipe()
     set_cloexec(errpipew)
