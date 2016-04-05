@@ -1,19 +1,19 @@
 #!/usr/bin/python
-#
-# Two Column Virtual Terminal.
-#
+"""
+Two Column Virtual Terminal.
+"""
 # Copyright 2011 Helmut Grohne <helmut@subdivi.de>. All rights reserved.
-# 
+#
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
-# 
+#
 #    1. Redistributions of source code must retain the above copyright notice,
 #       this list of conditions and the following disclaimer.
-# 
+#
 #    2. Redistributions in binary form must reproduce the above copyright
 #       notice, this list of conditions and the following disclaimer in the
 #       documentation and/or other materials provided with the distribution.
-# 
+#
 # THIS SOFTWARE IS PROVIDED BY HELMUT GROHNE ``AS IS'' AND ANY EXPRESS OR
 # IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
 # MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO
@@ -24,11 +24,12 @@
 # LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 # NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
 # EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-# 
+#
 # The views and conclusions contained in the software and documentation are
 # those of the authors and should not be interpreted as representing official
 # policies, either expressed or implied, of Helmut Grohne.
 
+# pylint: disable=invalid-name, missing-docstring
 import pty
 import sys
 import os
@@ -42,6 +43,9 @@ import time
 import optparse
 
 def init_color_pairs(invert):
+    """
+    Set color pairs for ncurses where each color is between 0 and COLORS.
+    """
     foreground = curses.COLOR_BLACK
     background = curses.COLOR_WHITE
     if invert:
@@ -304,10 +308,10 @@ def compose_dicts(dct1, dct2):
             pass
     return result
 
-simple_characters = bytearray(
-        b'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ' +
-        b'0123456789@:~$ .#!/_(),[]=-+*\'"|<>%&\\?;`^{}' +
-        b'\xb4\xb6\xb7\xc3\xc4\xd6\xdc\xe4\xe9\xfc\xf6')
+SIMPLE_CHARACTERS = bytearray(
+    b'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ' +
+    b'0123456789@:~$ .#!/_(),[]=-+*\'"|<>%&\\?;`^{}' +
+    b'\xb4\xb6\xb7\xc3\xc4\xd6\xdc\xe4\xe9\xfc\xf6')
 
 class Terminal:
     def __init__(self, acsc, columns, reverse=False, invert=False):
@@ -486,15 +490,15 @@ class Terminal:
 
     def feed_simple(self, char):
         func = {
-                ord('\a'): self.do_bel,
-                ord('\b'): self.do_cub1,
-                ord('\n'): self.do_ind,
-                ord('\r'): self.do_cr,
-                ord('\t'): self.do_ht,
+            ord('\a'): self.do_bel,
+            ord('\b'): self.do_cub1,
+            ord('\n'): self.do_ind,
+            ord('\r'): self.do_cr,
+            ord('\t'): self.do_ht,
             }.get(char)
         if func:
             func()
-        elif char in simple_characters:
+        elif char in SIMPLE_CHARACTERS:
             self.addch(char)
         elif char == 0x1b:
             self.mode = (self.feed_esc,)
@@ -520,16 +524,16 @@ class Terminal:
     def feed_esc_opbr(self, char):
         self.feed_reset()
         func = {
-                ord('A'): self.do_cuu1,
-                ord('B'): self.do_cud1,
-                ord('C'): self.do_cuf1,
-                ord('D'): self.do_cub1,
-                ord('H'): self.do_home,
-                ord('J'): self.do_ed,
-                ord('L'): self.do_il1,
-                ord('M'): self.do_dl1,
-                ord('K'): self.do_el,
-                ord('P'): self.do_dch1,
+            ord('A'): self.do_cuu1,
+            ord('B'): self.do_cud1,
+            ord('C'): self.do_cuf1,
+            ord('D'): self.do_cub1,
+            ord('H'): self.do_home,
+            ord('J'): self.do_ed,
+            ord('L'): self.do_il1,
+            ord('M'): self.do_dl1,
+            ord('K'): self.do_el,
+            ord('P'): self.do_dch1,
             }.get(char)
         if func:
             func()
@@ -542,10 +546,10 @@ class Terminal:
 
     def feed_color(self, code):
         func = {
-                1: self.do_bold,
-                4: self.do_smul,
-                5: self.do_blink,
-                8: self.do_invis,
+            1: self.do_bold,
+            4: self.do_smul,
+            5: self.do_blink,
+            8: self.do_invis,
             }.get(code)
         if func:
             func()
@@ -578,15 +582,15 @@ class Terminal:
     def feed_esc_opbr_next(self, char, prev):
         self.feed_reset()
         func = {
-                ord('A'): self.do_cuu,
-                ord('B'): self.do_cud,
-                ord('C'): self.do_cuf,
-                ord('D'): self.do_cub,
-                ord('L'): self.do_il,
-                ord('M'): self.do_dl,
-                ord('P'): self.do_dch,
-                ord('X'): self.do_ech,
-                ord('@'): self.do_ich,
+            ord('A'): self.do_cuu,
+            ord('B'): self.do_cud,
+            ord('C'): self.do_cuf,
+            ord('D'): self.do_cub,
+            ord('L'): self.do_il,
+            ord('M'): self.do_dl,
+            ord('P'): self.do_dch,
+            ord('X'): self.do_ech,
+            ord('@'): self.do_ich,
             }.get(char)
         if func and prev.isdigit():
             func(int(prev))
@@ -616,7 +620,7 @@ class Terminal:
         else:
             raise ValueError("feed esc [ %r %r" % (prev, char))
 
-symbolic_keymapping = {
+SYMBOLIC_KEYMAPPING = {
     ord(b"\n"): "cr",
     curses.KEY_LEFT: "kcub1",
     curses.KEY_DOWN: "kcud1",
@@ -656,6 +660,7 @@ def set_cloexec(fd):
     fcntl.fcntl(fd, fcntl.F_SETFD, flags)
 
 def main():
+    # Options
     parser = optparse.OptionParser()
     parser.disable_interspersed_args()
     parser.add_option("-c", "--columns", dest="columns", metavar="N",
@@ -667,8 +672,11 @@ def main():
                       dest="invert", default=False,
                       help="Invert the foreground and background colors")
     options, args = parser.parse_args()
-    keymapping, acsc = compute_keymap(symbolic_keymapping)
-    t = Terminal(acsc, options.columns, reverse=options.reverse, invert=options.invert)
+
+    # Environment
+    keymapping, acsc = compute_keymap(SYMBOLIC_KEYMAPPING)
+    t = Terminal(acsc, options.columns, reverse=options.reverse,
+                 invert=options.invert)
 
     errpiper, errpipew = os.pipe()
     set_cloexec(errpipew)
@@ -691,6 +699,8 @@ def main():
     if data:
         print(data)
         sys.exit(1)
+
+    # Begin multicolumn layout
     try:
         t.start()
         t.resizepty(masterfd)
