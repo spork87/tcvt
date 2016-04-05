@@ -1,6 +1,6 @@
 #!/usr/bin/python
 #
-# Tow Column Virtual Terminal.
+# Two Column Virtual Terminal.
 #
 # Copyright 2011 Helmut Grohne <helmut@subdivi.de>. All rights reserved.
 # 
