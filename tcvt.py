@@ -41,11 +41,16 @@ import errno
 import time
 import optparse
 
-def init_color_pairs():
-    for bi, bc in enumerate((curses.COLOR_BLACK, curses.COLOR_RED,
+def init_color_pairs(invert):
+    foreground = curses.COLOR_BLACK
+    background = curses.COLOR_WHITE
+    if invert:
+        background = curses.COLOR_BLACK
+        foreground = curses.COLOR_WHITE
+    for bi, bc in enumerate((background, curses.COLOR_RED,
                              curses.COLOR_GREEN, curses.COLOR_YELLOW,
                              curses.COLOR_BLUE, curses.COLOR_MAGENTA,
-                             curses.COLOR_CYAN, curses.COLOR_WHITE)):
+                             curses.COLOR_CYAN, foreground)):
         for fi, fc in enumerate((curses.COLOR_WHITE, curses.COLOR_BLACK,
                                  curses.COLOR_RED, curses.COLOR_GREEN,
                                  curses.COLOR_YELLOW, curses.COLOR_BLUE,
@@ -305,7 +310,7 @@ simple_characters = bytearray(
         b'\xb4\xb6\xb7\xc3\xc4\xd6\xdc\xe4\xe9\xfc\xf6')
 
 class Terminal:
-    def __init__(self, acsc, columns, reverse=False):
+    def __init__(self, acsc, columns, reverse=False, invert=False):
         self.mode = (self.feed_simple,)
         self.realscreen = None
         self.screen = None
@@ -315,6 +320,7 @@ class Terminal:
         self.lastchar = ord(b' ')
         self.columns = columns
         self.reverse = reverse
+        self.invert = invert
 
     def switchmode(self):
         if isinstance(self.screen, Columns):
@@ -347,7 +353,8 @@ class Terminal:
         self.realscreen.nodelay(1)
         self.realscreen.keypad(1)
         curses.start_color()
-        init_color_pairs()
+        curses.use_default_colors()
+        init_color_pairs(self.invert)
         self.screen = Columns(self.realscreen, self.columns,
                               reverse=self.reverse)
         curses.noecho()
@@ -652,13 +659,16 @@ def main():
     parser = optparse.OptionParser()
     parser.disable_interspersed_args()
     parser.add_option("-c", "--columns", dest="columns", metavar="N",
-                      type="int", default=2, help="number of columns")
+                      type="int", default=2, help="Number of columns")
     parser.add_option("-r", "--reverse", action="store_true",
                       dest="reverse", default=False,
-                      help="order last column to the left")
+                      help="Order last column to the left")
+    parser.add_option("-i", "--invert", action="store_true",
+                      dest="invert", default=False,
+                      help="Invert the foreground and background colors")
     options, args = parser.parse_args()
     keymapping, acsc = compute_keymap(symbolic_keymapping)
-    t = Terminal(acsc, options.columns, reverse=options.reverse)
+    t = Terminal(acsc, options.columns, reverse=options.reverse, invert=options.invert)
 
     errpiper, errpipew = os.pipe()
     set_cloexec(errpipew)
