@@ -6,7 +6,7 @@ into a `$COLUMNS/2` x `$LINES*2` terminal. It ships the two commands `tcvt` and
 
 ![Editing Code in Full HD and four columns](editing-with-tcvt.png)
 
-Requriements
+Requirements
 ============
 To run tcvt you need a Python 2.6, 2.7 or 3.3. Other than that only standard
 unix tools such as man, make, gzip, sed are needed.
