@@ -13,8 +13,7 @@ Unix tools such as `man`, `make`, `gzip`, `sed` are needed.
 
 License
 =======
-`tcvt` is published under a [2-clause BSD
-license](LICENSE).
+`tcvt` is published under a [2-clause BSD license](LICENSE).
 
 Installation
 ============
