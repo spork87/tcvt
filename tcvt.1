@@ -1,20 +1,26 @@
-.Dd Apr 15, 2012
+.Dd Apr 5, 2016
 .Dt tcvt 1
 .Sh NAME
-tcvt - two column virtual terminal
+tcvt - two (or more) column virtual terminal
 .Sh SYNOPSIS
 .Nm tcvt
 .Op Fl c Ar columns
 .Op Fl h
 .Op Fl r
+.Op Fl i
 .Op Fl Fl
 .Ar program options
 .Nm optcvt
 .Ar program options
 .Sh DESCRIPTION
-The two column virtual terminal emulates a virtual terminal inside another virtual terminal.
-The emulated virtual terminal is twice as tall and half as wide as the original terminal.
-The upper half of the virtual terminal goes to the left and the lower half goes to the right of the original terminal.
+Emulate a tall, skinny terminal inside a short, wide terminal.
+Turn the empty whitespace on wide terminals into additional lines of code.
+.Pp
+A fullscreen terminal on a full HD screen (1920x1080) can turn into four columns of 80-159 characters for a single virtual terminal.
+.Pp
+For a two column split the emulated virtual terminal is twice as tall and half as wide as the original terminal.
+The upper half of the tall virtual terminal goes to the left and the lower half goes to the right of the original terminal.
+.Pp
 An \fBANSI\fP terminal is emulated.
 .Pp
 While \fBtcvt\fP does this conversion unconditionally, the \fBoptcvt\fP can be used with smaller terminals.
@@ -32,6 +38,8 @@ Specify the number of columns. This defaults to two.
 Print a quick option overview and exit.
 .It Fl r , Fl Fl reverse
 Order columns so that the last one is the left most.
+.It Fl i , Fl Fl invert
+Invert foreground and background colors.
 .It Fl Fl
 Signal end of options.
 .El
@@ -45,6 +53,8 @@ The error message includes the unrecognized sequence.
 .Sh SEE ALSO
 .Xr screen 1
 .Xr splitvt 1
+.Xr tmux 1
+.Xr byobu 1
 .Sh AUTHOR
 Helmut Grohne <helmut@subdivi.de>
 .Sh AVAILABILITY
