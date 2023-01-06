@@ -2,12 +2,12 @@
 TCVT=./tcvt.py
 MINWIDTH=80
 
-SIZE=`stty size`
-test $? = 0 || exit $?
+SIZE=`stty size` || exit $?
 COLUMNS="${SIZE#* }"
+panes=$((COLUMNS / (MINWIDTH + 1)))
 
-if test "$COLUMNS" -ge $((2*$MINWIDTH+1)); then
-	exec $TCVT "$@"
+if test $panes -ge 2; then
+	exec $TCVT -c$panes "$@"
 elif test -z "$@"; then
 	exec "$SHELL"
 else
